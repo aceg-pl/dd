@@ -1,6 +1,6 @@
 <!doctype html><html lang="pl"><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Date Info Bar</title>
+<title>Date Info Bar Compact</title>
 <style>
 body{margin:0;font:15px/1.4 -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial}
 #top{position:fixed;top:0;left:0;right:0;z-index:2147483647;background:#111827;color:#F9FAFB;
@@ -11,14 +11,14 @@ a{color:#F9FAFB;text-decoration:none}
 .mut{color:#9CA3AF}
 #close{position:absolute;right:10px;top:8px;border:0;background:#374151;color:#E5E7EB;
         border-radius:8px;padding:2px 8px;font-size:16px;cursor:pointer}
-#sp{height:auto;padding-top:160px}
+#sp{height:auto;padding-top:150px}
 </style>
 
 <div id="top">
   <button id="close">×</button>
   <div id="d"></div>
   <div id="otd"><h2>On this day</h2><div class="mut">loading…</div></div>
-  <div id="nd"><h2>Namesday</h2><div class="mut">loading…</div></div>
+  <div id="nd"><h2>Imieniny (PL)</h2><div class="mut">loading…</div></div>
   <div id="mv"><h2>Movies</h2><div class="mut">loading…</div></div>
   <div id="al"><h2>Albums</h2><div class="mut">loading…</div></div>
   <div id="ft"><h2>Matches</h2><div class="mut">loading…</div></div>
@@ -27,8 +27,8 @@ a{color:#F9FAFB;text-decoration:none}
 
 <script>
 (async()=>{
-const tmdbKey="179d23dc4b4a1ba27263fcc2503d5e3d";  // optional
-const footKey="f1637751ac2e41dc8cfbe1f9492c0a4b";                // optional
+const tmdbKey="179d23dc4b4a1ba27263fcc2503d5e3d";
+const footKey="f1637751ac2e41dc8cfbe1f9492c0a4b";
 
 const today=new Date(),
 ymd=today.toISOString().slice(0,10),
@@ -38,7 +38,7 @@ const $=id=>document.getElementById(id),set=(id,html)=>($(id).innerHTML=html);
 $("d").innerHTML=`📅 ${ymd} (${today.toLocaleDateString('pl-PL',{weekday:'long'})})`;
 
 const j=async(u,o)=>{try{const r=await fetch(u,o);if(!r.ok)throw 0;return await r.json()}catch(e){return null}}
-const list=(arr,max=4,map=x=>x)=>arr&&arr.length?arr.slice(0,max).map(map).join("<br>"):"<span class='mut'>none</span>";
+const bullets=(arr,max=5,map=x=>x)=>arr&&arr.length?arr.slice(0,max).map(map).join(" • "):"<span class='mut'>none</span>";
 
 // On this day
 j(`https://api.wikimedia.org/feed/v1/wikipedia/en/onthisday/all/${MM}/${DD}`).then(d=>{
@@ -46,29 +46,29 @@ j(`https://api.wikimedia.org/feed/v1/wikipedia/en/onthisday/all/${MM}/${DD}`).th
  set("otd",`<h2>On this day</h2>${ev.length?ev.join("<br>"):"<span class='mut'>none</span>"}`);
 });
 
-// Namesday (working alt API)
+// Namesday (Poland)
 j(`https://api.abalin.net/namedays?country=pl&month=${MM}&day=${DD}`).then(d=>{
  const names=d&&d.data&&d.data.namedays?d.data.namedays.pl:"";
  set("nd",`<h2>Imieniny (PL)</h2>${names||"<span class='mut'>none</span>"}`);
 });
 
-// Movies
+// Movies (inline bullets)
 (async()=>{
  if(!tmdbKey){set("mv","<h2>Movies</h2><span class='mut'>add TMDb key</span>");return;}
  const d=await j(`https://api.themoviedb.org/3/discover/movie?api_key=${tmdbKey}&language=en-US&region=US&with_release_type=3|2&primary_release_date.gte=${ymd}&primary_release_date.lte=${ymd}`);
- const html=list(d&&d.results,5,x=>`<a href="https://www.themoviedb.org/movie/${x.id}" target="_blank">${x.title}</a>`);
+ const html=bullets(d&&d.results,6,x=>`<a href="https://www.themoviedb.org/movie/${x.id}" target="_blank">${x.title}</a>`);
  set("mv",`<h2>Movies</h2>${html}`);
 })();
 
-// Albums
+// Albums (inline bullets)
 j(`https://musicbrainz.org/ws/2/release/?query=date:${ymd}%20AND%20status:official&fmt=json&limit=10`).then(d=>{
  const seen=new Set,releases=(d&&d.releases||[]).filter(x=>{
    const t=(x["release-group"]?.title)||x.title;
    if(seen.has(t))return false; seen.add(t); return t;
  });
- const html=list(releases,5,x=>{
+ const html=bullets(releases,6,x=>{
    const t=(x["release-group"]?.title)||x.title,id=(x["release-group"]?.id)||x.id;
-   return `<a href="https://musicbrainz.org/release-group/${id}" target="_blank">${t}</a>${x["artist-credit"]?` — ${x["artist-credit"].map(a=>a.name).join(", ")}`:""}`;
+   return `<a href="https://musicbrainz.org/release-group/${id}" target="_blank">${t}</a>`;
  });
  set("al",`<h2>Albums</h2>${html}`);
 });
@@ -78,7 +78,8 @@ j(`https://musicbrainz.org/ws/2/release/?query=date:${ymd}%20AND%20status:offici
  if(!footKey){set("ft","<h2>Matches</h2><span class='mut'>add football key</span>");return;}
  const d=await j(`https://api.football-data.org/v4/matches?dateFrom=${ymd}&dateTo=${ymd}&competitions=PD,CL`,
                  {headers:{"X-Auth-Token":footKey}});
- const html=list((d&&d.matches)||[],8,m=>`${m.competition.code||m.competition.name}: ${m.homeTeam.name} vs ${m.awayTeam.name} ${(m.utcDate||"").slice(11,16)} UTC`);
+ const matches=(d&&d.matches)||[];
+ const html=matches.length?matches.slice(0,6).map(m=>`${m.competition.code||m.competition.name}: ${m.homeTeam.name} vs ${m.awayTeam.name} ${(m.utcDate||"").slice(11,16)} UTC`).join("<br>"):"<span class='mut'>none</span>";
  set("ft",`<h2>Matches</h2>${html}`);
 })();
 
