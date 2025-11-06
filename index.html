@@ -1,6 +1,6 @@
 <!doctype html><html lang="pl"><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Date Info Bar Fixed</title>
+<title>Date Info Bar – Final Fixed</title>
 <style>
 body{margin:0;font:15px/1.45 -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial}
 #top{position:fixed;top:0;left:0;right:0;z-index:2147483647;background:#111827;color:#F9FAFB;
@@ -11,14 +11,14 @@ a{color:#F9FAFB;text-decoration:none;font-weight:600}
 .mut{color:#9CA3AF}
 #close{position:absolute;right:10px;top:8px;border:0;background:#374151;color:#E5E7EB;
         border-radius:8px;padding:2px 8px;font-size:16px;cursor:pointer}
-#sp{height:auto;padding-top:200px}
+#sp{height:auto;padding-top:220px}
 </style>
 
 <div id="top">
   <button id="close">×</button>
   <div id="d"></div>
-  <div id="otd"><h2>On this day</h2><div class="mut">loading…</div></div>
   <div id="nd"><h2>Imieniny (PL)</h2><div class="mut">loading…</div></div>
+  <div id="otd"><h2>On this day</h2><div class="mut">loading…</div></div>
   <div id="mv"><h2>Movies</h2><div class="mut">loading…</div></div>
   <div id="al"><h2>Albums</h2><div class="mut">loading…</div></div>
   <div id="ft"><h2>Matches</h2><div class="mut">loading…</div></div>
@@ -40,21 +40,29 @@ $("d").innerHTML=`📅 ${ymd} (${today.toLocaleDateString('pl-PL',{weekday:'long
 const j=async(u,o)=>{try{const r=await fetch(u,o);if(!r.ok)throw 0;return await r.json()}catch(e){return null}}
 const bullets=(arr,max=8,map=x=>x)=>arr&&arr.length?arr.slice(0,max).map(map).join(" • "):"<span class='mut'>none</span>";
 
-// On-this-day
+// 🔹 Names-day (new working mirror)
+(async()=>{
+ try{
+   const d=await fetch("https://api.wikidata.org/w/api.php?action=wbgetentities&ids=Q65769761&format=json&origin=*").then(r=>r.json());
+   const names=(()=>{try{
+     const text=d.entities.Q65769761.descriptions.pl.value;
+     const n=text.split(":")[1]||"";
+     return n.trim();
+   }catch(e){return ""}})();
+   set("nd",`<h2>Imieniny (PL)</h2>${names||"<span class='mut'>none</span>"}`);
+ }catch(e){
+   set("nd",`<h2>Imieniny (PL)</h2><span class='mut'>source unavailable</span>`);
+ }
+})();
+
+// 🔹 On this day (sorted oldest→newest, top 5)
 j(`https://api.wikimedia.org/feed/v1/wikipedia/en/onthisday/all/${MM}/${DD}`).then(d=>{
- const ev=d&&d.events?d.events.slice(0,4).map(x=>`${x.year}: <a href="https://en.wikipedia.org/wiki/${encodeURIComponent((x.pages?.[0]?.titles?.normalized)||'')}" target="_blank">${x.text.split(" – ")[0]}</a>`):[];
- set("otd",`<h2>On this day</h2>${ev.length?ev.join("<br>"):"<span class='mut'>none</span>"}`);
+ let ev=(d&&d.events)?d.events.sort((a,b)=>a.year-b.year).slice(0,5):[];
+ const html=ev.map(x=>`${x.year}: <a href="https://en.wikipedia.org/wiki/${encodeURIComponent((x.pages?.[0]?.titles?.normalized)||'')}" target="_blank">${x.text.split(" – ")[0]}</a>`).join("<br>");
+ set("otd",`<h2>On this day</h2>${html||"<span class='mut'>none</span>"}`);
 });
 
-// Names-day (fixed)
-j(`https://nameday.abalin.net/getdate?country=pl&month=${MM}&day=${DD}`).then(d=>{
- let names="";
- if(d&&d.data&&d.data.namedays&&d.data.namedays.pl) names=d.data.namedays.pl;
- else if(d&&d.data&&Array.isArray(d.data)) names=d.data.map(x=>x.name).join(", ");
- set("nd",`<h2>Imieniny (PL)</h2>${names||"<span class='mut'>none</span>"}`);
-}).catch(_=>set("nd","<h2>Imieniny (PL)</h2><span class='mut'>source unavailable</span>"));
-
-// Movies (bold + extended fields)
+// 🔹 Movies (bold + extended)
 (async()=>{
  if(!tmdbKey){set("mv","<h2>Movies</h2><span class='mut'>add TMDb key</span>");return;}
  const d=await j(`https://api.themoviedb.org/3/discover/movie?api_key=${tmdbKey}&language=en-US&region=US&with_release_type=3|2&primary_release_date.gte=${ymd}&primary_release_date.lte=${ymd}&sort_by=popularity.desc`);
@@ -72,7 +80,7 @@ j(`https://nameday.abalin.net/getdate?country=pl&month=${MM}&day=${DD}`).then(d=
  set("mv",`<h2>Movies</h2>${infos.length?infos.join(" • "):"<span class='mut'>none</span>"}`);
 })();
 
-// Albums (bold titles + artists)
+// 🔹 Albums (bold + artists)
 j(`https://musicbrainz.org/ws/2/release/?query=date:${ymd}%20AND%20status:official&fmt=json&limit=15`).then(d=>{
  const seen=new Set,releases=(d&&d.releases||[]).filter(x=>{
    const t=(x["release-group"]?.title)||x.title;
@@ -87,7 +95,7 @@ j(`https://musicbrainz.org/ws/2/release/?query=date:${ymd}%20AND%20status:offici
  set("al",`<h2>Albums</h2>${html}`);
 });
 
-// Matches
+// 🔹 Matches
 (async()=>{
  if(!footKey){set("ft","<h2>Matches</h2><span class='mut'>add football key</span>");return;}
  const d=await j(`https://api.football-data.org/v4/matches?dateFrom=${ymd}&dateTo=${ymd}&competitions=PD,CL`,
@@ -97,7 +105,7 @@ j(`https://musicbrainz.org/ws/2/release/?query=date:${ymd}%20AND%20status:offici
  set("ft",`<h2>Matches</h2>${html}`);
 })();
 
-// Close button
+// 🔹 Close button
 document.getElementById("close").onclick=()=>{document.getElementById("top").remove();};
 })();
 </script>
