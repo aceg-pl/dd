@@ -441,3 +441,5 @@ function WypiszImieniny(before, after, Sep, lastSep, method) {
 	}
 	document.write(""+before+PobierzImieniny(Sep,lastSep,method)+after);
 }
+
+window.PobierzImieniny = PobierzImieniny;
