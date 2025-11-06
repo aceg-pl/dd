@@ -40,15 +40,17 @@ $("d").innerHTML=`📅 ${ymd} (${today.toLocaleDateString('pl-PL',{weekday:'long
 const j=async(u,o)=>{try{const r=await fetch(u,o);if(!r.ok)throw 0;return await r.json()}catch(e){return null}}
 const bullets=(arr,max=8,map=x=>x)=>arr&&arr.length?arr.slice(0,max).map(map).join(" • "):"<span class='mut'>none</span>";
 
-// 🔹 Names-day (new working mirror)
+// 🔹 Names-day (reliable JSON source)
 (async()=>{
  try{
-   const d=await fetch("https://api.wikidata.org/w/api.php?action=wbgetentities&ids=Q65769761&format=json&origin=*").then(r=>r.json());
-   const names=(()=>{try{
-     const text=d.entities.Q65769761.descriptions.pl.value;
-     const n=text.split(":")[1]||"";
-     return n.trim();
-   }catch(e){return ""}})();
+   const res=await fetch(`https://api.abalin.net/getdate?country=pl&month=${MM}&day=${DD}`);
+   const d=await res.json();
+   let names="";
+   if(d && d.data && d.data.namedays && d.data.namedays.pl){
+     names=d.data.namedays.pl;
+   } else if(d && Array.isArray(d.data)){
+     names=d.data.map(x=>x.name).join(", ");
+   }
    set("nd",`<h2>Imieniny (PL)</h2>${names||"<span class='mut'>none</span>"}`);
  }catch(e){
    set("nd",`<h2>Imieniny (PL)</h2><span class='mut'>source unavailable</span>`);
