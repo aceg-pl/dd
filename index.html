@@ -109,7 +109,7 @@ j(`https://musicbrainz.org/ws/2/release/?query=date:${ymd}%20AND%20status:offici
 // 🔹 Matches
 (async()=>{
  if(!footKey){set("ft","<h2>Matches</h2><span class='mut'>add football key</span>");return;}
- const d=await j(`https://api.football-data.org/v4/matches?dateFrom=${ymd}&dateTo=${ymd}&competitions=PD,CL`,
+ const d=await j(`https://api.football-data.org/v4/matches?dateFrom=${ymd}&dateTo=${ymd}&competitions=PD,CL,EL,EC`,
                  {headers:{"X-Auth-Token":footKey}});
  const matches=(d&&d.matches)||[];
  const html=matches.length?matches.slice(0,10).map(m=>`${m.competition.code||m.competition.name}: ${m.homeTeam.name} vs ${m.awayTeam.name} ${(m.utcDate||"").slice(11,16)} UTC`).join("<br>"):"<span class='mut'>none</span>";
