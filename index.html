@@ -1,17 +1,17 @@
 <!doctype html><html lang="pl"><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Date Info Bar Extended</title>
+<title>Date Info Bar Fixed</title>
 <style>
-body{margin:0;font:15px/1.4 -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial}
+body{margin:0;font:15px/1.45 -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial}
 #top{position:fixed;top:0;left:0;right:0;z-index:2147483647;background:#111827;color:#F9FAFB;
      box-shadow:0 4px 12px rgba(0,0,0,.25);padding:10px 14px;font-size:15px;
      border-bottom:2px solid #374151}
-h2{margin:4px 0;font-size:15px;color:#60A5FA}
-a{color:#F9FAFB;text-decoration:none}
+h2{margin:6px 0;font-size:15px;color:#60A5FA}
+a{color:#F9FAFB;text-decoration:none;font-weight:600}
 .mut{color:#9CA3AF}
 #close{position:absolute;right:10px;top:8px;border:0;background:#374151;color:#E5E7EB;
         border-radius:8px;padding:2px 8px;font-size:16px;cursor:pointer}
-#sp{height:auto;padding-top:180px}
+#sp{height:auto;padding-top:200px}
 </style>
 
 <div id="top">
@@ -27,8 +27,8 @@ a{color:#F9FAFB;text-decoration:none}
 
 <script>
 (async()=>{
-const tmdbKey="179d23dc4b4a1ba27263fcc2503d5e3d";  // required for extended movie info
-const footKey="f1637751ac2e41dc8cfbe1f9492c0a4b";                // optional
+const tmdbKey="179d23dc4b4a1ba27263fcc2503d5e3d";
+const footKey="f1637751ac2e41dc8cfbe1f9492c0a4b";
 
 const today=new Date(),
 ymd=today.toISOString().slice(0,10),
@@ -38,26 +38,28 @@ const $=id=>document.getElementById(id),set=(id,html)=>($(id).innerHTML=html);
 $("d").innerHTML=`📅 ${ymd} (${today.toLocaleDateString('pl-PL',{weekday:'long'})})`;
 
 const j=async(u,o)=>{try{const r=await fetch(u,o);if(!r.ok)throw 0;return await r.json()}catch(e){return null}}
-const bullets=(arr,max=4,map=x=>x)=>arr&&arr.length?arr.slice(0,max).map(map).join(" • "):"<span class='mut'>none</span>";
+const bullets=(arr,max=8,map=x=>x)=>arr&&arr.length?arr.slice(0,max).map(map).join(" • "):"<span class='mut'>none</span>";
 
-// On this day
+// On-this-day
 j(`https://api.wikimedia.org/feed/v1/wikipedia/en/onthisday/all/${MM}/${DD}`).then(d=>{
- const ev=d&&d.events?d.events.slice(0,3).map(x=>`${x.year}: <a href="https://en.wikipedia.org/wiki/${encodeURIComponent((x.pages?.[0]?.titles?.normalized)||'')}" target="_blank">${x.text.split(" – ")[0]}</a>`):[];
+ const ev=d&&d.events?d.events.slice(0,4).map(x=>`${x.year}: <a href="https://en.wikipedia.org/wiki/${encodeURIComponent((x.pages?.[0]?.titles?.normalized)||'')}" target="_blank">${x.text.split(" – ")[0]}</a>`):[];
  set("otd",`<h2>On this day</h2>${ev.length?ev.join("<br>"):"<span class='mut'>none</span>"}`);
 });
 
-// Namesday (PL)
-j(`https://api.abalin.net/namedays?country=pl&month=${MM}&day=${DD}`).then(d=>{
- const names=d&&d.data&&d.data.namedays?d.data.namedays.pl:"";
+// Names-day (fixed)
+j(`https://nameday.abalin.net/getdate?country=pl&month=${MM}&day=${DD}`).then(d=>{
+ let names="";
+ if(d&&d.data&&d.data.namedays&&d.data.namedays.pl) names=d.data.namedays.pl;
+ else if(d&&d.data&&Array.isArray(d.data)) names=d.data.map(x=>x.name).join(", ");
  set("nd",`<h2>Imieniny (PL)</h2>${names||"<span class='mut'>none</span>"}`);
-});
+}).catch(_=>set("nd","<h2>Imieniny (PL)</h2><span class='mut'>source unavailable</span>"));
 
-// Movies extended
+// Movies (bold + extended fields)
 (async()=>{
  if(!tmdbKey){set("mv","<h2>Movies</h2><span class='mut'>add TMDb key</span>");return;}
  const d=await j(`https://api.themoviedb.org/3/discover/movie?api_key=${tmdbKey}&language=en-US&region=US&with_release_type=3|2&primary_release_date.gte=${ymd}&primary_release_date.lte=${ymd}&sort_by=popularity.desc`);
  if(!d||!d.results){set("mv","<h2>Movies</h2><span class='mut'>none</span>");return;}
- const movies=d.results.slice(0,3);
+ const movies=d.results.slice(0,8);
  const infos=[];
  for(const m of movies){
    const det=await j(`https://api.themoviedb.org/3/movie/${m.id}?api_key=${tmdbKey}&append_to_response=credits`);
@@ -65,22 +67,22 @@ j(`https://api.abalin.net/namedays?country=pl&month=${MM}&day=${DD}`).then(d=>{
    const genres=(det.genres||[]).map(g=>g.name).join(", ");
    const dir=(det.credits.crew.find(c=>c.job=="Director")||{}).name||"";
    const cast=(det.credits.cast||[]).slice(0,3).map(c=>c.name).join(", ");
-   infos.push(`<a href="https://www.themoviedb.org/movie/${m.id}" target="_blank">${m.title}</a>${genres?", "+genres:""}${dir?", "+dir:""}${cast?", "+cast:""}`);
+   infos.push(`<a href="https://www.themoviedb.org/movie/${m.id}" target="_blank"><b>${m.title}</b></a>${genres?", "+genres:""}${dir?", "+dir:""}${cast?", "+cast:""}`);
  }
  set("mv",`<h2>Movies</h2>${infos.length?infos.join(" • "):"<span class='mut'>none</span>"}`);
 })();
 
-// Albums extended (titles + artists)
-j(`https://musicbrainz.org/ws/2/release/?query=date:${ymd}%20AND%20status:official&fmt=json&limit=10`).then(d=>{
+// Albums (bold titles + artists)
+j(`https://musicbrainz.org/ws/2/release/?query=date:${ymd}%20AND%20status:official&fmt=json&limit=15`).then(d=>{
  const seen=new Set,releases=(d&&d.releases||[]).filter(x=>{
    const t=(x["release-group"]?.title)||x.title;
    if(seen.has(t))return false; seen.add(t); return t;
  });
- const html=bullets(releases,5,x=>{
+ const html=bullets(releases,10,x=>{
    const t=(x["release-group"]?.title)||x.title;
    const id=(x["release-group"]?.id)||x.id;
    const artists=(x["artist-credit"]||[]).map(a=>a.name).join(", ");
-   return `<a href="https://musicbrainz.org/release-group/${id}" target="_blank">${t}</a>${artists?", "+artists:""}`;
+   return `<a href="https://musicbrainz.org/release-group/${id}" target="_blank"><b>${t}</b></a>${artists?", "+artists:""}`;
  });
  set("al",`<h2>Albums</h2>${html}`);
 });
@@ -91,7 +93,7 @@ j(`https://musicbrainz.org/ws/2/release/?query=date:${ymd}%20AND%20status:offici
  const d=await j(`https://api.football-data.org/v4/matches?dateFrom=${ymd}&dateTo=${ymd}&competitions=PD,CL`,
                  {headers:{"X-Auth-Token":footKey}});
  const matches=(d&&d.matches)||[];
- const html=matches.length?matches.slice(0,6).map(m=>`${m.competition.code||m.competition.name}: ${m.homeTeam.name} vs ${m.awayTeam.name} ${(m.utcDate||"").slice(11,16)} UTC`).join("<br>"):"<span class='mut'>none</span>";
+ const html=matches.length?matches.slice(0,10).map(m=>`${m.competition.code||m.competition.name}: ${m.homeTeam.name} vs ${m.awayTeam.name} ${(m.utcDate||"").slice(11,16)} UTC`).join("<br>"):"<span class='mut'>none</span>";
  set("ft",`<h2>Matches</h2>${html}`);
 })();
 
