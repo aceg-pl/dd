@@ -1,0 +1,85 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Date-top bar</title>
+<style>
+  :root{--bg:#111827E6;--fg:#F9FAFB;--mut:#9CA3AF;--acc:#60A5FA}
+  body{margin:0;font:14px/1.35 -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial}
+  #top{position:fixed;top:0;left:0;right:0;z-index:2147483647;background:var(--bg);color:var(--fg);
+       box-shadow:0 6px 16px rgba(0,0,0,.25);backdrop-filter:saturate(1.2) blur(6px)}
+  #row{display:flex;gap:.75rem;align-items:center;padding:.6rem .8rem;overflow:auto;scrollbar-width:none}
+  #row::-webkit-scrollbar{display:none}
+  .chip{white-space:nowrap;display:inline-flex;align-items:center;gap:.4rem;border:1px solid #374151;
+        border-radius:12px;padding:.35rem .55rem;background:#111827}
+  .chip b{color:var(--acc);font-weight:600}
+  a{color:var(--fg);text-decoration:none}
+  .mut{color:var(--mut)}
+  #close{margin-left:auto;cursor:pointer;border:0;background:#374151;color:#E5E7EB;border-radius:10px;padding:.25rem .5rem}
+  #sp{height:56px}
+</style>
+<div id="top"><div id="row">
+  <span class="chip"><b id="d"></b><span id="dow" class="mut"></span></span>
+  <span class="chip" id="otd"><b>On this day</b><span class="mut">loading…</span></span>
+  <span class="chip" id="nd"><b>Imieniny (PL)</b><span class="mut">loading…</span></span>
+  <span class="chip" id="mv"><b>Movies</b><span class="mut">loading…</span></span>
+  <span class="chip" id="al"><b>Albums</b><span class="mut">loading…</span></span>
+  <span class="chip" id="ft"><b>Matches</b><span class="mut">loading…</span></span>
+  <button id="close">×</button>
+</div></div>
+<div id="sp"></div>
+<script>
+(async()=>{const tmdbKey="179d23dc4b4a1ba27263fcc2503d5e3d";      // ← add key (free tier)
+const footKey="f1637751ac2e41dc8cfbe1f9492c0a4b";                              // ← optional football-data.org key (if blank, matches skipped)
+const today=new Date(),ymd=today.toISOString().slice(0,10),
+MM=('0'+(today.getMonth()+1)).slice(-2),DD=('0'+today.getDate()).slice(-2),
+$=id=>document.getElementById(id), set=(id,html)=>($(id).innerHTML=html);
+
+// date chip
+$("d").textContent=ymd; $("dow").textContent=today.toLocaleDateString(undefined,{weekday:"short"});
+
+// helpers
+const j=async(u,o)=>{try{const r=await fetch(u,o); if(!r.ok)throw 0; return await r.json()}catch(e){return null}}
+const list=(arr,max=3,map=x=>x)=>arr&&arr.length?arr.slice(0,max).map(map).join(" • "):"<span class='mut'>none</span>";
+
+// On this day (Wikimedia)
+j(`https://api.wikimedia.org/feed/v1/wikipedia/en/onthisday/all/${MM}/${DD}`).then(d=>{
+  const ev=d&&d.events?d.events.slice(0,3).map(x=>`${x.year}: <a href="https://en.wikipedia.org/wiki/${encodeURIComponent((x.pages?.[0]?.titles?.normalized)||'')}" target="_blank" rel="noopener">${x.text.split(" – ")[0]}</a>`):[];
+  set("otd",`<b>On this day</b> ${ev.length?ev.join(" • "):"<span class='mut'>none</span>"}`)
+});
+
+// Namesday (Poland)
+j(`https://nameday.abalin.net/getbydate?country=pl&month=${MM}&day=${DD}`).then(d=>{
+  const names=(d&&d.data)?d.data.map(x=>x.name).join(", "):"<span class='mut'>none</span>";
+  set("nd",`<b>Imieniny (PL)</b> ${names}`)
+});
+
+// Movies released today (TMDb)
+(async()=>{
+  if(!tmdbKey){ set("mv","<b>Movies</b> <span class='mut'>add TMDb key</span>"); return; }
+  const d=await j(`https://api.themoviedb.org/3/discover/movie?api_key=${tmdbKey}&language=en-US&region=US&with_release_type=3|2&primary_release_date.gte=${ymd}&primary_release_date.lte=${ymd}&sort_by=popularity.desc`);
+  const html=list(d&&d.results,5,x=>`<a href="https://www.themoviedb.org/movie/${x.id}" target="_blank" rel="noopener">${x.title}</a>`);
+  set("mv",`<b>Movies</b> ${html}`);
+})();
+
+// Albums released today (MusicBrainz)
+j(`https://musicbrainz.org/ws/2/release/?query=date:${ymd}%20AND%20status:official&fmt=json&limit=10`).then(d=>{
+  const seen=new Set, releases=(d&&d.releases||[]).filter(x=>{const t=(x["release-group"]?.title)||x.title; if(seen.has(t))return false; seen.add(t); return t});
+  const html=list(releases,5,x=>{
+    const t=(x["release-group"]?.title)||x.title, id=(x["release-group"]?.id)||x.id;
+    return `<a href="https://musicbrainz.org/release-group/${id}" target="_blank" rel="noopener">${t}</a>${x["artist-credit"]?` — ${x["artist-credit"].map(a=>a.name).join(", ")}`:""}`
+  });
+  set("al",`<b>Albums</b> ${html}`);
+});
+
+// Matches today (La Liga + UCL) — football-data.org (optional key)
+(async()=>{
+  if(!footKey){ set("ft","<b>Matches</b> <span class='mut'>add football key</span>"); return; }
+  const d=await j(`https://api.football-data.org/v4/matches?dateFrom=${ymd}&dateTo=${ymd}&competitions=PD,CL`,{headers:{"X-Auth-Token":footKey}});
+  const matches=(d&&d.matches)||[];
+  const html=list(matches,8,m=>`${m.competition.code||m.competition.name}: ${m.homeTeam.name} vs ${m.awayTeam.name} ${m.utcDate?("("+m.utcDate.slice(11,16)+" UTC)"):""}`);
+  set("ft",`<b>Matches</b> ${html}`);
+})();
+
+// close button
+$("close").onclick=()=>{document.getElementById("top").remove(); document.getElementById("sp").remove();};
+})();
+</script>
+</html>
