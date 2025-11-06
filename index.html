@@ -9,14 +9,13 @@ body{margin:0;font:15px/1.45 -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Ar
 h2{margin:6px 0;font-size:15px;color:#60A5FA}
 a{color:#F9FAFB;text-decoration:none;font-weight:600}
 .mut{color:#9CA3AF}
-#close{position:absolute;right:10px;top:8px;border:0;background:#374151;color:#E5E7EB;
-        border-radius:8px;padding:2px 8px;font-size:16px;cursor:pointer}
 #sp{height:auto;padding-top:220px}
 </style>
 
 <div id="top">
-  <button id="close">X</button>
-  <div id="d" style="text-align:center;"></div>
+  <div id="d" style="text-align:center;cursor:pointer;"></div>
+     
+<div id="content" style="display:none;">
   <div id="otd"><h2>On this day</h2><div class="mut">loading…</div></div>
   <div id="mv"><h2>Movies</h2><div class="mut">loading…</div></div>
   <div id="al"><h2>Albums</h2><div class="mut">loading…</div></div>
@@ -121,6 +120,12 @@ j(`https://musicbrainz.org/ws/2/release/?query=date:${ymd}%20AND%20status:offici
 
 // Close button
 document.getElementById("close").onclick=()=>{document.getElementById("top").remove();};
+
+$("d").onclick=()=>{
+  const c=$("content");
+  c.style.display=c.style.display==="none"?"block":"none";
+};
+     
 })();
 </script>
 </html>
