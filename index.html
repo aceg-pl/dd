@@ -1,6 +1,9 @@
+const tmdbKey="179d23dc4b4a1ba27263fcc2503d5e3d";
+const footKey="f1637751ac2e41dc8cfbe1f9492c0a4b";
+
 <!doctype html><html lang="pl"><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Date Info Bar – Final Fixed</title>
+<title>Date Info Bar – Imienniczek Source</title>
 <style>
 body{margin:0;font:15px/1.45 -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial}
 #top{position:fixed;top:0;left:0;right:0;z-index:2147483647;background:#111827;color:#F9FAFB;
@@ -40,20 +43,15 @@ $("d").innerHTML=`📅 ${ymd} (${today.toLocaleDateString('pl-PL',{weekday:'long
 const j=async(u,o)=>{try{const r=await fetch(u,o);if(!r.ok)throw 0;return await r.json()}catch(e){return null}}
 const bullets=(arr,max=8,map=x=>x)=>arr&&arr.length?arr.slice(0,max).map(map).join(" • "):"<span class='mut'>none</span>";
 
-// 🔹 Names-day (reliable JSON source)
+// 🔹 Imieniny from imienniczek.pl
 (async()=>{
  try{
-   const res=await fetch(`https://api.abalin.net/getdate?country=pl&month=${MM}&day=${DD}`);
-   const d=await res.json();
-   let names="";
-   if(d && d.data && d.data.namedays && d.data.namedays.pl){
-     names=d.data.namedays.pl;
-   } else if(d && Array.isArray(d.data)){
-     names=d.data.map(x=>x.name).join(", ");
-   }
+   const txt=await fetch("https://imienniczek.pl/widget/js",{mode:"cors"}).then(r=>r.text());
+   const match=txt.match(/Imieniny\s*([^']+)/i);
+   const names=match?match[1].replace(/<\/?[^>]+>/g,"").replace(/^[^:]*:\s*/,"").trim():"";
    set("nd",`<h2>Imieniny (PL)</h2>${names||"<span class='mut'>none</span>"}`);
  }catch(e){
-   set("nd",`<h2>Imieniny (PL)</h2><span class='mut'>source unavailable</span>`);
+   set("nd","<h2>Imieniny (PL)</h2><span class='mut'>source unavailable</span>");
  }
 })();
 
