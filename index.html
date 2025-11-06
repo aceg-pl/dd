@@ -59,7 +59,7 @@ function getNamesday(){
   const m=d.getMonth(),day=d.getDate()-1;
   return (namesdayArray[m]&&namesdayArray[m][day])?namesdayArray[m][day]:"";
 }
-set("nd",`<h2>Namesday</h2>${getNamesday()||"<span class='mut'>none</span>"}`);
+set("nd",`<h2 style="display:inline; margin-right:6px;">Namesday</h2>${getNamesday()||"<span class='mut'>none</span>"}`);
 
 // utility
 const j=async(u,o)=>{try{const r=await fetch(u,o);if(!r.ok)throw 0;return await r.json()}catch(e){return null}}
@@ -69,7 +69,7 @@ const bullets=(arr,max=8,map=x=>x)=>arr&&arr.length?arr.slice(0,max).map(map).jo
 j(`https://api.wikimedia.org/feed/v1/wikipedia/en/onthisday/all/${MM}/${DD}`).then(d=>{
  let ev=(d&&d.events)?d.events.sort((a,b)=>a.year-b.year).slice(0,5):[];
  const html=ev.map(x=>`<b>${x.year}</b><span style="font-weight:400">: <a href="https://en.wikipedia.org/wiki/${encodeURIComponent((x.pages?.[0]?.titles?.normalized)||'')}" target="_blank">${x.text.split(" – ")[0]}</a>`).join("<br>");
- set("otd",`<h2>On this day</h2>${html||"<span class='mut'>none</span>"}`);
+ set("otd",`<h2 style="display:inline; margin-right:6px;">On this day</h2>${html||"<span class='mut'>none</span>"}`);
 });
 
 // 🔹 Movies (bold + extended)
@@ -88,7 +88,7 @@ j(`https://api.wikimedia.org/feed/v1/wikipedia/en/onthisday/all/${MM}/${DD}`).th
    infos.push(
   `<a href="https://www.themoviedb.org/movie/${m.id}" target="_blank"><b>${m.title}</b></a>` + (genres ? " " + genres.split(", ")[0] : "") + (dir ? " by " + dir : "") + (cast ? `, <i>${cast}</i>` : ""));
  }
- set("mv",`<h2>Movies</h2>${infos.length?infos.join(" • "):"<span class='mut'>none</span>"}`);
+ set("mv",`<h2 style="display:inline; margin-right:6px;">Movies</h2>${infos.length?infos.join(" • "):"<span class='mut'>none</span>"}`);
 })();
 
 // 🔹 Albums (bold + artists)
@@ -101,9 +101,9 @@ j(`https://musicbrainz.org/ws/2/release/?query=date:${ymd}%20AND%20status:offici
    const t=(x["release-group"]?.title)||x.title;
    const id=(x["release-group"]?.id)||x.id;
    const artists=(x["artist-credit"]||[]).map(a=>a.name).join(", ");
-   return `<a href="https://music.apple.com/pl/search?term=${encodeURIComponent(t+(artists?(" "+artists):""))}" target="_blank"><b>${t}</b></a>${artists?" "+artists:""}`;
+   return `<a href="https://musicbrainz.org/release-group/${id}" target="_blank"><b>${t}</b></a>${artists?" "+artists:""}`;
  });
- set("al",`<h2>Albums</h2>${html}`);
+ set("al",`<h2 style="display:inline; margin-right:6px;">Albums</h2>${html}`);
 });
 
 // 🔹 Matches
@@ -113,7 +113,7 @@ j(`https://musicbrainz.org/ws/2/release/?query=date:${ymd}%20AND%20status:offici
                  {headers:{"X-Auth-Token":footKey}});
  const matches=(d&&d.matches)||[];
  const html=matches.length?matches.slice(0,10).map(m=>`${m.competition.code||m.competition.name}: ${m.homeTeam.name} vs ${m.awayTeam.name} ${(m.utcDate||"").slice(11,16)} UTC`).join("<br>"):"<span class='mut'>none</span>";
- set("ft",`<h2>Matches</h2>${html}`);
+ set("ft",`<h2 style="display:inline; margin-right:6px;">Matches</h2>${html}`);
 })();
 
 // Close button
