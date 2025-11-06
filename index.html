@@ -101,7 +101,7 @@ j(`https://musicbrainz.org/ws/2/release/?query=date:${ymd}%20AND%20status:offici
    const t=(x["release-group"]?.title)||x.title;
    const id=(x["release-group"]?.id)||x.id;
    const artists=(x["artist-credit"]||[]).map(a=>a.name).join(", ");
-   return `<a href="https://musicbrainz.org/release-group/${id}" target="_blank"><b>${t}</b></a>${artists?", "+artists:""}`;
+   return `<a href="https://music.apple.com/pl/search?term=${encodeURIComponent(t+(artists?(" "+artists):""))}" target="_blank"><b>${t}</b></a>${artists?" "+artists:""}`;
  });
  set("al",`<h2>Albums</h2>${html}`);
 });
