@@ -118,9 +118,6 @@ j(`https://musicbrainz.org/ws/2/release/?query=date:${ymd}%20AND%20status:offici
  set("ft",`<h2 style="display:inline; margin-right:6px;">Matches</h2>${html}`);
 })();
 
-// Close button
-document.getElementById("close").onclick=()=>{document.getElementById("top").remove();};
-
 $("d").onclick=()=>{
   const c=$("content");
   c.style.display=c.style.display==="none"?"block":"none";
