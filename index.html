@@ -43,15 +43,24 @@ $("d").innerHTML=`📅 ${ymd} (${today.toLocaleDateString('pl-PL',{weekday:'long
 const j=async(u,o)=>{try{const r=await fetch(u,o);if(!r.ok)throw 0;return await r.json()}catch(e){return null}}
 const bullets=(arr,max=8,map=x=>x)=>arr&&arr.length?arr.slice(0,max).map(map).join(" • "):"<span class='mut'>none</span>";
 
-// 🔹 Imieniny from imienniczek.pl
+// 🔹 Names-day (external script from GitHub)
 (async()=>{
- try{
-   const txt=await fetch("https://imienniczek.pl/widget/js",{mode:"cors"}).then(r=>r.text());
-   const match=txt.match(/Imieniny\s*([^']+)/i);
-   const names=match?match[1].replace(/<\/?[^>]+>/g,"").replace(/^[^:]*:\s*/,"").trim():"";
-   set("nd",`<h2>Imieniny (PL)</h2>${names||"<span class='mut'>none</span>"}`);
- }catch(e){
-   set("nd","<h2>Imieniny (PL)</h2><span class='mut'>source unavailable</span>");
+ try {
+   // Load and execute external JS file
+   const s=document.createElement("script");
+   s.src="https://cdn.jsdelivr.net/gh/aceg-pl/dd/namesday.js";
+   s.onload=()=> {
+     try {
+       const names = typeof PobierzImieniny==="function" ? PobierzImieniny() : "";
+       set("nd",`<h2>Imieniny (PL)</h2>${names||"<span class='mut'>none</span>"}`);
+     } catch(err){
+       set("nd","<h2>Imieniny (PL)</h2><span class='mut'>parse error</span>");
+     }
+   };
+   s.onerror=()=>set("nd","<h2>Imieniny (PL)</h2><span class='mut'>source error</span>");
+   document.head.appendChild(s);
+ } catch(e){
+   set("nd","<h2>Imieniny (PL)</h2><span class='mut'>load failed</span>");
  }
 })();
 
