@@ -35,7 +35,6 @@ ymd=today.toISOString().slice(0,10),
 MM=('0'+(today.getMonth()+1)).slice(-2),
 DD=('0'+today.getDate()).slice(-2);
 const $=id=>document.getElementById(id),set=(id,html)=>($(id).innerHTML=html);
-$("d").innerHTML=`📅 ${ymd} (${today.toLocaleDateString('pl-PL',{weekday:'long'})})`;
 
 // 🔹 Static Polish names-day array
 const namesdayArray=[
@@ -59,7 +58,8 @@ function getNamesday(){
   const m=d.getMonth(),day=d.getDate()-1;
   return (namesdayArray[m]&&namesdayArray[m][day])?namesdayArray[m][day]:"";
 }
-set("nd",`<h2 style="display:inline; margin-right:6px;">Namesday</h2>${getNamesday()||"<span class='mut'>none</span>"}`);
+// set("nd",`<h2 style="display:inline; margin-right:6px;">Namesday</h2>${getNamesday()||"<span class='mut'>none</span>"}`);
+$("d").innerHTML=`📅 ${ymd} (${today.toLocaleDateString('pl-PL',{weekday:'long'})}) — 🕊️ <b>Namesday:</b> ${getNamesday()||"<span class='mut'>none</span>"}`;
 
 // utility
 const j=async(u,o)=>{try{const r=await fetch(u,o);if(!r.ok)throw 0;return await r.json()}catch(e){return null}}
@@ -68,7 +68,12 @@ const bullets=(arr,max=8,map=x=>x)=>arr&&arr.length?arr.slice(0,max).map(map).jo
 // 🔹 On this day (sorted oldest→newest, top 5, year bolded)
 j(`https://api.wikimedia.org/feed/v1/wikipedia/en/onthisday/all/${MM}/${DD}`).then(d=>{
  let ev=(d&&d.events)?d.events.sort((a,b)=>a.year-b.year).slice(0,5):[];
- const html=ev.map(x=>`<b>${x.year}</b><span style="font-weight:400">: <a href="https://en.wikipedia.org/wiki/${encodeURIComponent((x.pages?.[0]?.titles?.normalized)||'')}" target="_blank">${x.text.split(" – ")[0]}</a>`).join("<br>");
+ const html=ev.map(x=>{
+  const yr=`<b>${x.year}</b>`;
+  const txt=x.text.split(" – ")[0]||"";
+  const link=(x.pages?.[0]?.titles?.normalized)||"";
+  return `${yr}: <a href="https://en.wikipedia.org/wiki/${encodeURIComponent(link)}" target="_blank" style="font-weight:400">${txt}</a>`;
+  }).join("<br>");
  set("otd",`<h2 style="display:inline; margin-right:6px;">On this day</h2>${html||"<span class='mut'>none</span>"}`);
 });
 
