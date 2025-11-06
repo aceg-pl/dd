@@ -1,6 +1,6 @@
 <!doctype html><html lang="en"><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Date-top bar scroll</title>
+<title>Date-top bar scroll (fixed)</title>
 <style>
 :root{--bg:#111827E6;--fg:#F9FAFB;--mut:#9CA3AF;--acc:#60A5FA}
 body{margin:0;font:14px/1.4 -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial}
@@ -8,12 +8,14 @@ body{margin:0;font:14px/1.4 -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Ari
      box-shadow:0 4px 12px rgba(0,0,0,.25);backdrop-filter:saturate(1.2) blur(6px);
      max-height:45vh;overflow-y:auto;overscroll-behavior:contain}
 #row{display:flex;flex-wrap:nowrap;gap:.75rem;align-items:flex-start;padding:.6rem .8rem;
-     overflow-x:auto;overflow-y:visible;scrollbar-width:none}
+     overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 #row::-webkit-scrollbar{display:none}
-.chip{white-space:normal;min-width:160px;display:inline-flex;flex-direction:column;
-      gap:.3rem;border:1px solid #374151;border-radius:10px;padding:.45rem .6rem;background:#1F2937}
-.chip b{color:var(--acc);font-weight:600;margin-bottom:.15rem}
-a{color:var(--fg);text-decoration:none;word-break:break-word}
+.chip{position:relative;min-width:170px;display:flex;flex-direction:column;
+      border:1px solid #374151;border-radius:10px;padding:.45rem .6rem;background:#1F2937}
+.chip b{color:var(--acc);font-weight:600;margin-bottom:.15rem;white-space:nowrap;overflow:hidden;display:block}
+.chip span.scroll{display:inline-block;white-space:nowrap;animation:marquee 12s linear infinite}
+@keyframes marquee{from{transform:translateX(0)}to{transform:translateX(-100%)}}
+a{color:var(--fg);text-decoration:none}
 .mut{color:var(--mut)}
 #close{position:absolute;right:8px;top:6px;cursor:pointer;border:0;background:#374151;color:#E5E7EB;
         border-radius:10px;padding:.25rem .5rem;font-size:18px;line-height:1}
@@ -31,8 +33,9 @@ a{color:var(--fg);text-decoration:none;word-break:break-word}
 <div id="sp"></div>
 
 <script>
-(async()=>{const tmdbKey="179d23dc4b4a1ba27263fcc2503d5e3d";  // ← add TMDb key
-const footKey="f1637751ac2e41dc8cfbe1f9492c0a4b";                          // ← optional football key
+(async()=>{
+const tmdbKey="179d23dc4b4a1ba27263fcc2503d5e3d";     // ← add TMDb key
+const footKey="f1637751ac2e41dc8cfbe1f9492c0a4b";                   // ← optional football-data.org key
 const today=new Date(),ymd=today.toISOString().slice(0,10),
 MM=('0'+(today.getMonth()+1)).slice(-2),DD=('0'+today.getDate()).slice(-2),
 $=id=>document.getElementById(id),set=(id,html)=>($(id).innerHTML=html);
@@ -43,21 +46,28 @@ const list=(arr,max=3,map=x=>x)=>arr&&arr.length?arr.slice(0,max).map(map).join(
 // On-this-day
 j(`https://api.wikimedia.org/feed/v1/wikipedia/en/onthisday/all/${MM}/${DD}`).then(d=>{
  const ev=d&&d.events?d.events.slice(0,3).map(x=>`${x.year}: <a href="https://en.wikipedia.org/wiki/${encodeURIComponent((x.pages?.[0]?.titles?.normalized)||'')}" target="_blank">${x.text.split(" – ")[0]}</a>`):[];
- set("otd",`<b>On this day</b>${ev.length?ev.join("<br>"):"<span class='mut'>none</span>"}`)
+ set("otd",`<b>On this day</b><span class="scroll">${ev.length?ev.join(" • "):"<span class='mut'>none</span>"}</span>`)
 });
 
-// Namesday (PL)
-j(`https://nameday.abalin.net/getbydate?country=pl&month=${MM}&day=${DD}`).then(d=>{
- const names=(d&&d.data)?d.data.map(x=>x.name).join(", "):"<span class='mut'>none</span>";
- set("nd",`<b>Imieniny (PL)</b>${names}`)
-});
+// Namesday (Poland) — fallback JSONP proxy to bypass CORS
+(async()=>{
+  const prox=`https://api.allorigins.win/get?url=${encodeURIComponent(`https://nameday.abalin.net/api/V1/getDate?country=pl&month=${MM}&day=${DD}`)}`;
+  const d=await j(prox);
+  let txt="<span class='mut'>none</span>";
+  try{
+    const p=JSON.parse(d.contents||"{}");
+    const n=p?.data?.namedays?.pl;
+    txt=n?`${n}`:txt;
+  }catch(e){}
+  set("nd",`<b>Imieniny (PL)</b><span class="scroll">${txt}</span>`);
+})();
 
 // Movies today
 (async()=>{
  if(!tmdbKey){set("mv","<b>Movies</b><span class='mut'>add TMDb key</span>");return;}
  const d=await j(`https://api.themoviedb.org/3/discover/movie?api_key=${tmdbKey}&language=en-US&region=US&with_release_type=3|2&primary_release_date.gte=${ymd}&primary_release_date.lte=${ymd}&sort_by=popularity.desc`);
  const html=list(d&&d.results,5,x=>`<a href="https://www.themoviedb.org/movie/${x.id}" target="_blank">${x.title}</a>`);
- set("mv",`<b>Movies</b>${html}`);
+ set("mv",`<b>Movies</b><span class="scroll">${html}</span>`);
 })();
 
 // Albums today (MusicBrainz)
@@ -65,7 +75,7 @@ j(`https://musicbrainz.org/ws/2/release/?query=date:${ymd}%20AND%20status:offici
  const seen=new Set,releases=(d&&d.releases||[]).filter(x=>{const t=(x["release-group"]?.title)||x.title;if(seen.has(t))return false;seen.add(t);return t});
  const html=list(releases,5,x=>{const t=(x["release-group"]?.title)||x.title,id=(x["release-group"]?.id)||x.id;
   return `<a href="https://musicbrainz.org/release-group/${id}" target="_blank">${t}</a>${x["artist-credit"]?` — ${x["artist-credit"].map(a=>a.name).join(", ")}`:""}`});
- set("al",`<b>Albums</b>${html}`);
+ set("al",`<b>Albums</b><span class="scroll">${html}</span>`);
 });
 
 // Matches today (La Liga + CL)
@@ -73,11 +83,4 @@ j(`https://musicbrainz.org/ws/2/release/?query=date:${ymd}%20AND%20status:offici
  if(!footKey){set("ft","<b>Matches</b><span class='mut'>add football key</span>");return;}
  const d=await j(`https://api.football-data.org/v4/matches?dateFrom=${ymd}&dateTo=${ymd}&competitions=PD,CL`,{headers:{"X-Auth-Token":footKey}});
  const html=list((d&&d.matches)||[],8,m=>`${m.competition.code||m.competition.name}: ${m.homeTeam.name} vs ${m.awayTeam.name} ${(m.utcDate||"").slice(11,16)} UTC`);
- set("ft",`<b>Matches</b>${html}`);
-})();
-
-// close button
-document.getElementById("close").onclick=()=>{document.getElementById("top").remove();document.getElementById("sp").remove();};
-})();
-</script>
-</html>
+ set("ft",`<b>Matches</b><span class="scroll">${html}</span>`);
