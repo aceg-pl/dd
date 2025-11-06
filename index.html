@@ -85,7 +85,8 @@ j(`https://api.wikimedia.org/feed/v1/wikipedia/en/onthisday/all/${MM}/${DD}`).th
    const genres=(det.genres||[]).map(g=>g.name).join(", ");
    const dir=(det.credits.crew.find(c=>c.job=="Director")||{}).name||"";
    const cast=(det.credits.cast||[]).slice(0,3).map(c=>c.name).join(", ");
-   infos.push(`<a href="https://www.themoviedb.org/movie/${m.id}" target="_blank"><b>${m.title}</b></a>${genres?", "+genres:""}${dir?", "+dir:""}${cast?", "+cast:""}`);
+   infos.push(
+  `<a href="https://www.themoviedb.org/movie/${m.id}" target="_blank"><b>${m.title}</b></a>` + (genres ? ", " + genres.split(", ")[0] : "") + (dir ? ", " + dir : "") + (cast ? `, <i>${cast}</i>` : ""));
  }
  set("mv",`<h2>Movies</h2>${infos.length?infos.join(" • "):"<span class='mut'>none</span>"}`);
 })();
