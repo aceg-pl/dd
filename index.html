@@ -3,7 +3,7 @@ const footKey="f1637751ac2e41dc8cfbe1f9492c0a4b";
 
 <!doctype html><html lang="pl"><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Date Info Bar – Imienniczek Source</title>
+<title>Date Info Bar – External Namesday.js</title>
 <style>
 body{margin:0;font:15px/1.45 -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial}
 #top{position:fixed;top:0;left:0;right:0;z-index:2147483647;background:#111827;color:#F9FAFB;
@@ -31,7 +31,7 @@ a{color:#F9FAFB;text-decoration:none;font-weight:600}
 <script>
 (async()=>{
 const tmdbKey="179d23dc4b4a1ba27263fcc2503d5e3d";
-const footKey="f1637751ac2e41dc8cfbe1f9492c0a4b";
+const footKey="f1637751ac2e41dc8cfbe1f9492c0a4b";                
 
 const today=new Date(),
 ymd=today.toISOString().slice(0,10),
@@ -40,31 +40,31 @@ DD=('0'+today.getDate()).slice(-2);
 const $=id=>document.getElementById(id),set=(id,html)=>($(id).innerHTML=html);
 $("d").innerHTML=`📅 ${ymd} (${today.toLocaleDateString('pl-PL',{weekday:'long'})})`;
 
+// 🔹 Load external namesday.js and wait until function is available
+try {
+  await new Promise((resolve,reject)=>{
+    const s=document.createElement("script");
+    s.src="https://cdn.jsdelivr.net/gh/aceg-pl/dd/namesday.js";
+    s.onload=()=>resolve();
+    s.onerror=()=>reject();
+    document.head.appendChild(s);
+  });
+  // once loaded, check for function
+  if(typeof PobierzImieniny==="function"){
+    const names=PobierzImieniny();
+    set("nd",`<h2>Imieniny (PL)</h2>${names||"<span class='mut'>none</span>"}`);
+  }else{
+    set("nd","<h2>Imieniny (PL)</h2><span class='mut'>function missing</span>");
+  }
+}catch(e){
+  set("nd","<h2>Imieniny (PL)</h2><span class='mut'>load failed</span>");
+}
+
+// utility
 const j=async(u,o)=>{try{const r=await fetch(u,o);if(!r.ok)throw 0;return await r.json()}catch(e){return null}}
 const bullets=(arr,max=8,map=x=>x)=>arr&&arr.length?arr.slice(0,max).map(map).join(" • "):"<span class='mut'>none</span>";
 
-// 🔹 Names-day (external script from GitHub)
-(async()=>{
- try {
-   // Load and execute external JS file
-   const s=document.createElement("script");
-   s.src="https://cdn.jsdelivr.net/gh/aceg-pl/dd/namesday.js";
-   s.onload=()=> {
-     try {
-       const names = typeof PobierzImieniny==="function" ? PobierzImieniny() : "";
-       set("nd",`<h2>Imieniny (PL)</h2>${names||"<span class='mut'>none</span>"}`);
-     } catch(err){
-       set("nd","<h2>Imieniny (PL)</h2><span class='mut'>parse error</span>");
-     }
-   };
-   s.onerror=()=>set("nd","<h2>Imieniny (PL)</h2><span class='mut'>source error</span>");
-   document.head.appendChild(s);
- } catch(e){
-   set("nd","<h2>Imieniny (PL)</h2><span class='mut'>load failed</span>");
- }
-})();
-
-// 🔹 On this day (sorted oldest→newest, top 5)
+// 🔹 On this day (sorted oldest→newest, top 5, year bolded)
 j(`https://api.wikimedia.org/feed/v1/wikipedia/en/onthisday/all/${MM}/${DD}`).then(d=>{
  let ev=(d&&d.events)?d.events.sort((a,b)=>a.year-b.year).slice(0,5):[];
  const html=ev.map(x=>`<b>${x.year}</b>: <a href="https://en.wikipedia.org/wiki/${encodeURIComponent((x.pages?.[0]?.titles?.normalized)||'')}" target="_blank">${x.text.split(" – ")[0]}</a>`).join("<br>");
@@ -114,7 +114,7 @@ j(`https://musicbrainz.org/ws/2/release/?query=date:${ymd}%20AND%20status:offici
  set("ft",`<h2>Matches</h2>${html}`);
 })();
 
-// 🔹 Close button
+// Close button
 document.getElementById("close").onclick=()=>{document.getElementById("top").remove();};
 })();
 </script>
